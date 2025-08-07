@@ -1,0 +1,2002 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Evaluación de Estudiantes</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome CDN for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- jsPDF CDN for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- jsPDF-AutoTable CDN for table generation in PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.13/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        /* Custom styles for better aesthetics and hamburger menu */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Lighter blue-gray background */
+            color: #2d3748; /* Darker text for better contrast */
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        .header {
+            background-color: #4c51bf; /* Deeper Indigo */
+            color: white;
+            padding: 1.25rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .hamburger-menu {
+            display: none; /* Hidden by default on larger screens */
+            cursor: pointer;
+            font-size: 2rem;
+            color: white;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .nav-menu a {
+            color: white;
+            text-decoration: none;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-menu a:hover {
+            background-color: #667eea; /* Lighter indigo on hover */
+            transform: translateY(-2px);
+        }
+
+        .section {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            border: 1px solid #e2e8f0; /* Light gray border */
+        }
+
+        .section h2 {
+            color: #4c51bf; /* Deeper Indigo */
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+            border-bottom: 3px solid #a78bfa; /* Purple underline */
+            padding-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.6rem;
+            font-weight: 600;
+            color: #4a5568; /* Darker gray */
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.85rem;
+            border: 1px solid #cbd5e0; /* Light gray border */
+            border-radius: 0.5rem;
+            margin-bottom: 1.25rem;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            border-color: #7f9cf5; /* Blue on focus */
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.3); /* Light blue shadow on focus */
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.85rem 1.75rem;
+            border-radius: 0.6rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+            border: none;
+        }
+
+        .btn-primary {
+            background-color: #4c51bf; /* Deeper Indigo */
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #667eea; /* Lighter indigo */
+            transform: translateY(-2px);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-secondary {
+            background-color: #718096; /* Gray-blue */
+            color: white;
+            margin-left: 0.75rem;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a67d8; /* Darker gray-blue */
+            transform: translateY(-2px);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-top: 1.5rem;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .table th,
+        .table td {
+            padding: 1rem;
+            border: 1px solid #e2e8f0; /* Light border */
+            text-align: left;
+        }
+
+        .table th {
+            background-color: #ebf8ff; /* Very light blue header */
+            font-weight: 700;
+            color: #2c5282; /* Darker blue */
+        }
+
+        .table tbody tr:nth-child(even) {
+            background-color: #f7fafc; /* Lighter row background */
+        }
+
+        .table tbody tr:hover {
+            background-color: #e0f2fe; /* Even lighter blue on hover */
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.5); /* Black w/ opacity */
+            display: flex; /* Use flex to center content */
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 2.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+            width: 90%;
+            max-width: 600px;
+            position: relative;
+        }
+
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 32px;
+            font-weight: bold;
+            position: absolute;
+            top: 15px;
+            right: 25px;
+            cursor: pointer;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: #333;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .loading-spinner {
+            display: none;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #4c51bf;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+                flex-direction: column;
+                width: 100%;
+                position: absolute;
+                top: 80px; /* Adjust based on header height */
+                left: 0;
+                background-color: #4c51bf;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                border-radius: 0.5rem;
+                padding: 1rem 0;
+            }
+
+            .nav-menu.active {
+                display: flex;
+            }
+
+            .nav-menu a {
+                width: 100%;
+                text-align: center;
+                padding: 0.75rem 0;
+            }
+
+            .hamburger-menu {
+                display: block;
+            }
+        }
+
+        /* Styles for evaluation rubric cells */
+        .evaluation-cell {
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            text-align: center;
+            vertical-align: top; /* Align text to top for better descriptor display */
+            min-width: 100px; /* Ensure enough width for descriptors */
+        }
+        .evaluation-cell:hover {
+            background-color: #e0e7ff; /* Light blue on hover */
+            transform: scale(1.02);
+        }
+        .evaluation-cell.selected {
+            background-color: #8b5cf6; /* Deeper purple when selected */
+            color: white;
+            font-weight: bold;
+            box-shadow: inset 0 0 0 2px #6d28d9; /* Inner shadow for selection */
+        }
+
+        /* Styles for existing group buttons */
+        .group-button {
+            background-color: #e0e7ff; /* Light blue */
+            color: #4c51bf; /* Deeper Indigo */
+            padding: 0.6rem 1.2rem;
+            border-radius: 0.4rem;
+            font-weight: 600;
+            margin-right: 0.6rem;
+            margin-bottom: 0.6rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid #c3dafe;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+        }
+        .group-button:hover {
+            background-color: #c3dafe; /* Lighter blue */
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+        }
+        .group-button.active-group {
+            background-color: #4c51bf; /* Deeper Indigo */
+            color: white;
+            border-color: #4c51bf;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        .group-button .delete-icon {
+            margin-left: 0.6rem;
+            color: #ef4444; /* Red */
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+        .group-button.active-group .delete-icon {
+            color: #fca5a5; /* Lighter red for active group */
+        }
+        .group-button .delete-icon:hover {
+            color: #dc2626; /* Darker red on hover */
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1 class="text-3xl font-bold flex items-center">
+                <i class="fas fa-graduation-cap mr-3"></i>Sistema de Evaluación
+            </h1>
+            <nav class="nav-menu" id="navMenu">
+                <a href="#" onclick="showSection('basicDataSection')"><i class="fas fa-info-circle mr-2"></i>Datos Básicos</a>
+                <a href="#" onclick="showSection('studentManagementSection')"><i class="fas fa-users mr-2"></i>Estudiantes</a>
+                <a href="#" onclick="showSection('rubricModuleSection')"><i class="fas fa-clipboard-list mr-2"></i>Rúbricas</a>
+                <a href="#" onclick="showSection('evaluationModuleSection')"><i class="fas fa-edit mr-2"></i>Evaluación</a>
+                <a href="#" onclick="showSection('reportModuleSection')"><i class="fas fa-file-pdf mr-2"></i>Reportes</a>
+            </nav>
+            <div class="hamburger-menu" id="hamburgerMenu">
+                <i class="fas fa-bars"></i>
+            </div>
+        </header>
+
+        <!-- Main Content Sections -->
+        <main>
+            <!-- Módulo de Datos Básicos -->
+            <section id="basicDataSection" class="section">
+                <h2><i class="fas fa-info-circle mr-3"></i>Módulo de Datos Básicos</h2>
+                <form id="basicDataForm" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="form-group">
+                        <label for="institutionName"><i class="fas fa-building mr-2 text-gray-600"></i>Nombre de la Institución:</label>
+                        <input type="text" id="institutionName" placeholder="Ej: Universidad Nacional" required class="rounded-lg">
+                    </div>
+                    <div class="form-group">
+                        <label for="courseName"><i class="fas fa-book mr-2 text-gray-600"></i>Curso:</label>
+                        <select id="courseName" class="rounded-lg" required>
+                            <option value="">-- Seleccionar Curso --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="newCourseName"><i class="fas fa-plus-square mr-2 text-gray-600"></i>Añadir Nuevo Curso:</label>
+                        <input type="text" id="newCourseName" placeholder="Ej: Álgebra Lineal" class="rounded-lg">
+                        <button type="button" id="addCourseBtn" class="btn btn-secondary mt-2"><i class="fas fa-plus mr-2"></i>Añadir Curso</button>
+                    </div>
+                    <hr class="col-span-full my-6 border-t-2 border-gray-200"> <!-- Separador -->
+                    <div class="col-span-full">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-700 flex items-center">
+                            <i class="fas fa-chalkboard-teacher mr-2"></i>Datos de la Sesión de Aprendizaje
+                        </h3>
+                    </div>
+                    <div class="form-group">
+                        <label for="teacherName"><i class="fas fa-user-tie mr-2 text-gray-600"></i>Docente:</label>
+                        <input type="text" id="teacherName" placeholder="Ej: Juan Pérez" required class="rounded-lg">
+                    </div>
+                    <div class="form-group">
+                        <label for="evaluationDate"><i class="fas fa-calendar-alt mr-2 text-gray-600"></i>Fecha:</label>
+                        <input type="date" id="evaluationDate" required class="rounded-lg">
+                    </div>
+                    <div class="form-group md:col-span-2">
+                        <label for="sessionName"><i class="fas fa-chalkboard mr-2 text-gray-600"></i>Nombre de la Sesión de Aprendizaje:</label>
+                        <input type="text" id="sessionName" placeholder="Ej: Sesión 1: Introducción a HTML" required class="rounded-lg">
+                    </div>
+                    <div class="md:col-span-2 flex justify-end">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-save mr-2"></i>Guardar Datos</button>
+                    </div>
+                </form>
+                <div id="basicDataDisplay" class="mt-8 p-5 bg-blue-50 border border-blue-300 rounded-lg text-blue-800 hidden">
+                    <p><strong class="text-blue-900"><i class="fas fa-building mr-2"></i>Institución:</strong> <span id="displayInstitution"></span></p>
+                    <p><strong class="text-blue-900"><i class="fas fa-book mr-2"></i>Curso:</strong> <span id="displayCourse"></span></p>
+                    <p><strong class="text-blue-900"><i class="fas fa-user-tie mr-2"></i>Docente:</strong> <span id="displayTeacher"></span></p>
+                    <p><strong class="text-blue-900"><i class="fas fa-calendar-alt mr-2"></i>Fecha:</strong> <span id="displayDate"></span></p>
+                    <p><strong class="text-blue-900"><i class="fas fa-chalkboard mr-2"></i>Sesión:</strong> <span id="displaySession"></span></p>
+                </div>
+            </section>
+
+            <!-- Módulo de Gestión de Estudiantes -->
+            <section id="studentManagementSection" class="section hidden">
+                <h2><i class="fas fa-users mr-3"></i>Módulo de Gestión de Estudiantes</h2>
+
+                <!-- Area for creating a new group -->
+                <div class="mb-8 p-6 border rounded-lg bg-indigo-50 border-indigo-200">
+                    <h3 class="text-xl font-semibold mb-4 text-indigo-800 flex items-center">
+                        <i class="fas fa-layer-group mr-2"></i>Crear Nuevo Grupo
+                    </h3>
+                    <div class="form-group">
+                        <label for="newGroupNameInput"><i class="fas fa-tag mr-2 text-gray-600"></i>Nombre del Nuevo Grupo:</label>
+                        <input type="text" id="newGroupNameInput" placeholder="Ej: Grupo A" class="rounded-lg">
+                    </div>
+                    <div class="form-group">
+                        <label for="newGroupStudentDataTextarea"><i class="fas fa-paste mr-2 text-gray-600"></i>Pegar Nombres de Estudiantes (uno por línea):</label>
+                        <textarea id="newGroupStudentDataTextarea" rows="5" placeholder="Ej:&#10;Juan Pérez&#10;María García" class="rounded-lg"></textarea>
+                    </div>
+                    <button id="createGroupBtn" class="btn btn-primary"><i class="fas fa-plus-circle mr-2"></i>Crear Grupo</button>
+                </div>
+
+                <!-- Area for managing existing groups -->
+                <div class="mt-8 p-6 border rounded-lg bg-gray-50 border-gray-200">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-700 flex items-center">
+                        <i class="fas fa-folder-open mr-2"></i>Gestionar Grupos Existentes
+                    </h3>
+                    <div id="existingGroupsDisplay" class="mb-4 flex flex-wrap gap-3">
+                        <!-- Dynamically generated list of group buttons/links -->
+                        <p id="noExistingGroupsMessage" class="text-gray-500"><i class="fas fa-exclamation-circle mr-2"></i>No hay grupos creados aún.</p>
+                    </div>
+
+                    <div id="selectedGroupManagementArea" class="hidden mt-6 p-5 border rounded-lg bg-white border-blue-200">
+                        <h4 class="text-lg font-semibold mb-4 text-gray-800 flex items-center">
+                            <i class="fas fa-users-cog mr-2"></i>Estudiantes en el Grupo: <span id="activeManagingGroupName" class="text-indigo-600 ml-1"></span>
+                        </h4>
+                        <div class="table-container">
+                            <table id="studentTable" class="table w-full">
+                                <thead>
+                                    <tr>
+                                        <th><i class="fas fa-user mr-2"></i>Nombre Completo</th>
+                                        <th><i class="fas fa-cogs mr-2"></i>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Student rows will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-4">
+                            <label for="addStudentsToActiveGroupTextarea"><i class="fas fa-user-plus mr-2 text-gray-600"></i>Añadir más estudiantes a <span id="addStudentsToActiveGroupName" class="font-semibold"></span> (uno por línea):</label>
+                            <textarea id="addStudentsToActiveGroupTextarea" rows="3" placeholder="Ej:&#10;Ana López" class="rounded-lg"></textarea>
+                            <button id="addStudentsToActiveGroupBtn" class="btn btn-primary"><i class="fas fa-user-plus mr-2"></i>Añadir Más Estudiantes</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Módulo de Rúbrica -->
+            <section id="rubricModuleSection" class="section hidden">
+                <h2><i class="fas fa-clipboard-list mr-3"></i>Módulo de Rúbrica</h2>
+                <div class="form-group">
+                    <label for="geminiApiKey"><i class="fas fa-key mr-2 text-gray-600"></i>Clave API de Gemini:</label>
+                    <input type="password" id="geminiApiKey" placeholder="Ingresa tu clave API de Gemini aquí" class="rounded-lg">
+                    <p class="text-sm text-gray-500 mt-1">
+                        Obtén tu clave API en
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-600 hover:underline"><i class="fas fa-external-link-alt mr-1"></i>Google AI Studio</a>.
+                        <br>
+                        <strong class="text-red-500"><i class="fas fa-exclamation-triangle mr-1"></i>Advertencia:</strong> Para producción, esta clave debería ser manejada en el lado del servidor por seguridad.
+                    </p>
+                </div>
+                <div class="form-group">
+                    <label for="rubricTitle"><i class="fas fa-heading mr-2 text-gray-600"></i>Título de la Rúbrica:</label>
+                    <input type="text" id="rubricTitle" placeholder="Ej: Rúbrica para Presentación Oral" class="rounded-lg">
+                </div>
+                <!-- New Description Textarea -->
+                <div class="form-group">
+                    <label for="rubricDescription"><i class="fas fa-align-left mr-2 text-gray-600"></i>Descripción (para la IA):</label>
+                    <textarea id="rubricDescription" rows="4" placeholder="Ej: Una rúbrica para evaluar la participación activa en clase, enfocándose en la calidad de las intervenciones y el respeto." class="rounded-lg"></textarea>
+                </div>
+                <button id="generateRubricBtn" class="btn btn-primary flex items-center">
+                    <i class="fas fa-magic mr-2"></i>Generar Rúbrica con IA
+                    <div id="rubricLoadingSpinner" class="loading-spinner"></div>
+                </button>
+
+                <div id="generatedRubricDisplay" class="mt-8 p-6 bg-gray-50 border border-gray-300 rounded-lg hidden">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-700 flex items-center">
+                        <i class="fas fa-table mr-2"></i>Rúbrica Generada:
+                    </h3>
+                    <div class="table-container">
+                        <table id="rubricTable" class="table w-full">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-check-circle mr-2"></i>Criterio</th>
+                                    <th>Previo al Inicio (1)</th>
+                                    <th>Inicio (2)</th>
+                                    <th>En Proceso (3)</th>
+                                    <th>Logrado (4)</th>
+                                    <th>Destacado (5)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Rubric criteria will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4 flex justify-end">
+                        <button id="saveRubricBtn" class="btn btn-primary"><i class="fas fa-save mr-2"></i>Guardar Rúbrica</button>
+                    </div>
+                </div>
+
+                <div class="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h3 class="text-xl font-semibold mb-4 text-blue-800 flex items-center">
+                        <i class="fas fa-list-alt mr-2"></i>Rúbricas Guardadas:
+                    </h3>
+                    <ul id="savedRubricsList" class="list-disc pl-5 text-gray-700">
+                        <!-- Saved rubrics will be listed here -->
+                        <p id="noSavedRubricsMessage" class="text-gray-500"><i class="fas fa-info-circle mr-2"></i>No hay rúbricas guardadas aún.</p>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Módulo de Evaluación -->
+            <section id="evaluationModuleSection" class="section hidden">
+                <h2><i class="fas fa-edit mr-3"></i>Módulo de Evaluación</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="form-group">
+                        <label for="selectEvaluationGroup"><i class="fas fa-users mr-2 text-gray-600"></i>Seleccionar Grupo:</label>
+                        <select id="selectEvaluationGroup" class="rounded-lg"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="selectStudentForEvaluation"><i class="fas fa-user mr-2 text-gray-600"></i>Seleccionar Estudiante:</label>
+                        <select id="selectStudentForEvaluation" class="rounded-lg"></select>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center mb-6">
+                    <button id="prevStudentBtn" class="btn btn-secondary"><i class="fas fa-arrow-left mr-2"></i>Anterior</button>
+                    <button id="nextStudentBtn" class="btn btn-secondary">Siguiente<i class="fas fa-arrow-right ml-2"></i></button>
+                </div>
+                <div class="form-group">
+                    <label for="selectRubricForEvaluation"><i class="fas fa-clipboard mr-2 text-gray-600"></i>Seleccionar Rúbrica:</label>
+                    <select id="selectRubricForEvaluation" class="rounded-lg"></select>
+                </div>
+
+                <div id="evaluationArea" class="mt-8 p-6 bg-indigo-50 border border-indigo-300 rounded-lg hidden">
+                    <h3 class="text-xl font-semibold mb-4 text-indigo-800 flex items-center">
+                        <i class="fas fa-user-check mr-2"></i>Evaluando a: <span id="currentEvaluatingStudentName" class="text-indigo-600 ml-1"></span> (<span id="currentEvaluatingStudentDNI" class="text-indigo-600"></span>)
+                    </h3>
+                    <div class="table-container">
+                        <table id="evaluationRubricTable" class="table w-full">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-check-circle mr-2"></i>Criterio</th>
+                                    <th>Previo al Inicio (1)</th>
+                                    <th>Inicio (2)</th>
+                                    <th>En Proceso (3)</th>
+                                    <th>Logrado (4)</th>
+                                    <th>Destacado (5)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Evaluation criteria with clickable cells will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-6 p-5 bg-blue-100 border border-blue-400 rounded-lg text-blue-900">
+                        <p class="text-xl font-bold mb-2 flex items-center"><i class="fas fa-calculator mr-2"></i>Puntaje Total: <span id="totalScore" class="ml-2">0</span></p>
+                        <p class="text-xl font-bold mb-2 flex items-center"><i class="fas fa-percentage mr-2"></i>Promedio: <span id="averageScore" class="ml-2">0.0</span></p>
+                        <p class="text-xl font-bold flex items-center"><i class="fas fa-medal mr-2"></i>Nivel de Logro: <span id="descriptiveGrade" class="font-extrabold ml-2">--</span></p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Módulo de Reporte -->
+            <section id="reportModuleSection" class="section hidden">
+                <h2><i class="fas fa-file-pdf mr-3"></i>Módulo de Reporte</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="form-group">
+                        <label for="selectReportGroup"><i class="fas fa-users mr-2 text-gray-600"></i>Seleccionar Grupo:</label>
+                        <select id="selectReportGroup" class="rounded-lg"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="selectReportStudentForIndividualPdf"><i class="fas fa-user-graduate mr-2 text-gray-600"></i>Seleccionar Estudiante (para reporte individual):</label>
+                        <select id="selectReportStudentForIndividualPdf" class="rounded-lg"></select>
+                    </div>
+                    <div class="form-group md:col-span-2">
+                        <label for="selectReportRubric"><i class="fas fa-scroll mr-2 text-gray-600"></i>Seleccionar Rúbrica para Resumen Docente:</label>
+                        <select id="selectReportRubric" class="rounded-lg"></select>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-4 mt-4">
+                    <button id="generateGroupPdfReportsBtn" class="btn btn-primary"><i class="fas fa-file-pdf mr-2"></i>Generar Reportes PDF de Grupo</button>
+                    <button id="generateConsolidatedPdfReportBtn" class="btn btn-primary"><i class="fas fa-file-alt mr-2"></i>Generar Resumen Consolidado de Evaluaciones (PDF)</button>
+                    <button id="generateTeacherSummaryPdfBtn" class="btn btn-primary"><i class="fas fa-chalkboard-teacher mr-2"></i>Generar Resumen Docente (PDF)</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Message Box Modal -->
+    <div id="messageModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeMessageModal()">&times;</span>
+            <p id="messageText" class="text-xl text-gray-800 font-medium"></p>
+            <div class="flex justify-end mt-6">
+                <button id="messageModalConfirmBtn" class="btn btn-primary mr-3 hidden"><i class="fas fa-check-circle mr-2"></i>Confirmar</button>
+                <button id="messageModalCancelBtn" class="btn btn-secondary hidden"><i class="fas fa-times-circle mr-2"></i>Cancelar</button>
+                <button id="messageModalOkBtn" class="btn btn-primary" onclick="closeMessageModal()"><i class="fas fa-thumbs-up mr-2"></i>OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        console.log('Script cargado: Iniciando la aplicación...'); // Debugging: Confirm script loads
+
+        // Global application state
+        const appData = {
+            basicInfo: {
+                institutionName: '',
+                courseName: '', // This will store the currently selected course
+                teacherName: '',
+                evaluationDate: '',
+                sessionName: ''
+            },
+            groups: {}, // Stores groups: { groupName: [{ dni, name }] }
+            rubrics: [], // Stores rubrics: [{ id, title, description, criteria: [{ name, levels: {1: desc, 2: desc...} }] }]
+            evaluations: {}, // Stores evaluations: { studentDNI: { rubricId: { criterionName: score, totalScore, averageScore, descriptiveGrade } } }
+            savedCourses: [], // New array to store all unique course names
+            currentGroup: null,
+            currentManagingGroup: null,
+            currentStudent: null,
+            currentRubric: null,
+        };
+
+        // --- Utility Functions ---
+
+        /**
+         * Generates a simple unique ID.
+         * @returns {string} A unique ID.
+         */
+        function generateUniqueId() {
+            return '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        /**
+         * Displays a custom message box instead of alert().
+         * @param {string} message - The message to display.
+         */
+        function showMessageBox(message) {
+            console.log('Showing message box:', message); // Debug log
+            const modal = document.getElementById('messageModal');
+            const messageText = document.getElementById('messageText');
+            const okButton = document.getElementById('messageModalOkBtn');
+            const confirmButton = document.getElementById('messageModalConfirmBtn');
+            const cancelButton = document.getElementById('messageModalCancelBtn');
+
+            messageText.textContent = message;
+            okButton.style.display = 'inline-flex'; // Show OK button
+            confirmButton.style.display = 'none'; // Hide Confirm button
+            cancelButton.style.display = 'none'; // Hide Cancel button
+
+            modal.style.display = 'flex'; // Use flex to center content
+        }
+
+        // Define wrapper functions outside to allow removal
+        let handleConfirmWrapper;
+        let handleCancelWrapper;
+
+        /**
+         * Displays a custom confirmation box.
+         * @param {string} message - The message to display.
+         * @returns {Promise<boolean>} A promise that resolves to true if confirmed, false if cancelled.
+         */
+        function showConfirmBox(message) {
+            console.log('Showing confirm box:', message); // Debug log
+            return new Promise((resolve) => {
+                const modal = document.getElementById('messageModal');
+                const messageText = document.getElementById('messageText');
+                const okButton = document.getElementById('messageModalOkBtn');
+                const confirmButton = document.getElementById('messageModalConfirmBtn');
+                const cancelButton = document.getElementById('messageModalCancelBtn');
+
+                messageText.textContent = message;
+                okButton.style.display = 'none'; // Hide OK button
+                confirmButton.style.display = 'inline-flex'; // Show Confirm button
+                cancelButton.style.display = 'inline-flex'; // Show Cancel button
+
+                // Remove existing listeners to prevent multiple bindings if called repeatedly
+                if (handleConfirmWrapper) {
+                    confirmButton.removeEventListener('click', handleConfirmWrapper);
+                }
+                if (handleCancelWrapper) {
+                    cancelButton.removeEventListener('click', handleCancelWrapper);
+                }
+
+                handleConfirmWrapper = () => {
+                    console.log('Confirm button clicked for:', message); // Debug log
+                    confirmButton.removeEventListener('click', handleConfirmWrapper);
+                    cancelButton.removeEventListener('click', handleCancelWrapper);
+                    closeMessageModal();
+                    resolve(true);
+                };
+
+                handleCancelWrapper = () => {
+                    console.log('Cancel button clicked for:', message); // Debug log
+                    confirmButton.removeEventListener('click', handleConfirmWrapper);
+                    cancelButton.removeEventListener('click', handleCancelWrapper);
+                    closeMessageModal();
+                    resolve(false);
+                };
+
+                confirmButton.addEventListener('click', handleConfirmWrapper);
+                cancelButton.addEventListener('click', handleCancelWrapper);
+
+                modal.style.display = 'flex';
+            });
+        }
+
+        /**
+         * Closes the custom message/confirm box and resets button visibility.
+         */
+        function closeMessageModal() {
+            console.log('Closing message modal.'); // Debug log
+            document.getElementById('messageModal').style.display = 'none';
+            // Reset button visibility to default (only OK button visible)
+            document.getElementById('messageModalOkBtn').style.display = 'inline-flex';
+            document.getElementById('messageModalConfirmBtn').style.display = 'none';
+            document.getElementById('messageModalCancelBtn').style.display = 'none';
+        }
+
+        /**
+         * Shows a specific section and hides others.
+         * @param {string} sectionId - The ID of the section to show.
+         */
+        function showSection(sectionId) {
+            const sections = document.querySelectorAll('main section');
+            sections.forEach(section => {
+                section.classList.add('hidden');
+            });
+            document.getElementById(sectionId).classList.remove('hidden');
+
+            // Close hamburger menu on section selection for mobile
+            const navMenu = document.getElementById('navMenu');
+            if (navMenu.classList.contains('active')) {
+                navMenu.classList.remove('active');
+            }
+            saveAppData(); // Save state when switching sections
+        }
+
+        // --- Make functions globally accessible for onclick attributes ---
+        window.showMessageBox = showMessageBox;
+        window.closeMessageModal = closeMessageModal;
+        window.showSection = showSection;
+        window.deleteStudent = deleteStudent;
+        window.editRubric = editRubric;
+        window.deleteRubric = deleteRubric;
+        window.selectRubricScore = selectRubricScore; // Make globally accessible
+        window.selectGroupForManagement = selectGroupForManagement; // Make globally accessible
+
+
+        // --- Data Persistence (using localStorage) ---
+        function saveAppData() {
+            localStorage.setItem('studentEvaluationApp', JSON.stringify(appData));
+            console.log('Datos guardados:', appData); // Debugging: Confirm data save
+        }
+
+        function loadAppData() {
+            const savedData = localStorage.getItem('studentEvaluationApp');
+            if (savedData) {
+                try {
+                    const parsedData = JSON.parse(savedData);
+                    Object.assign(appData, parsedData);
+                    console.log('Datos cargados:', appData); // Debugging: Confirm data load
+                } catch (e) {
+                    console.error("Error parsing saved data from localStorage:", e);
+                    // Optionally, clear corrupted data
+                    localStorage.removeItem('studentEvaluationApp');
+                    showMessageBox("Error al cargar datos guardados. Los datos pueden estar corruptos. Se han reiniciado los datos.");
+                    // Reset appData to its initial empty state
+                    Object.assign(appData, {
+                        basicInfo: { institutionName: '', courseName: '', teacherName: '', evaluationDate: '', sessionName: '' },
+                        groups: {},
+                        rubrics: [],
+                        evaluations: {},
+                        savedCourses: [],
+                        currentGroup: null,
+                        currentManagingGroup: null,
+                        currentStudent: null,
+                        currentRubric: null,
+                    });
+                }
+            }
+        }
+
+        /**
+         * Renders the course selection dropdown in the Basic Data module.
+         */
+        function renderCourseSelect() {
+            const courseSelect = document.getElementById('courseName');
+            courseSelect.innerHTML = '<option value="">-- Seleccionar Curso --</option>'; // Clear existing options
+
+            appData.savedCourses.forEach(course => {
+                const option = document.createElement('option');
+                option.value = course;
+                option.textContent = course;
+                courseSelect.appendChild(option);
+            });
+
+            // Set the selected course if it was previously saved
+            if (appData.basicInfo.courseName) {
+                courseSelect.value = appData.basicInfo.courseName;
+            }
+        }
+
+        /**
+         * Updates the displayed basic data.
+         */
+        function updateBasicDataDisplay() {
+            document.getElementById('displayInstitution').textContent = appData.basicInfo.institutionName;
+            document.getElementById('displayCourse').textContent = appData.basicInfo.courseName;
+            document.getElementById('displayTeacher').textContent = appData.basicInfo.teacherName;
+            document.getElementById('displayDate').textContent = appData.basicInfo.evaluationDate;
+            document.getElementById('displaySession').textContent = appData.basicInfo.sessionName;
+
+            const displayDiv = document.getElementById('basicDataDisplay');
+            if (appData.basicInfo.institutionName && appData.basicInfo.courseName && appData.basicInfo.teacherName && appData.basicInfo.evaluationDate && appData.basicInfo.sessionName) {
+                displayDiv.classList.remove('hidden');
+            } else {
+                displayDiv.classList.add('hidden');
+            }
+        }
+
+        // --- Basic Data Module Logic ---
+        document.getElementById('basicDataForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            appData.basicInfo.institutionName = document.getElementById('institutionName').value;
+            appData.basicInfo.courseName = document.getElementById('courseName').value;
+            appData.basicInfo.teacherName = document.getElementById('teacherName').value;
+            appData.basicInfo.evaluationDate = document.getElementById('evaluationDate').value;
+            appData.basicInfo.sessionName = document.getElementById('sessionName').value;
+
+            // Add the selected course to savedCourses if it's new
+            if (appData.basicInfo.courseName && !appData.savedCourses.includes(appData.basicInfo.courseName)) {
+                appData.savedCourses.push(appData.basicInfo.courseName);
+                renderCourseSelect(); // Re-render to include the new course
+            }
+
+            saveAppData();
+            updateBasicDataDisplay();
+            showMessageBox('Datos básicos guardados correctamente.');
+        });
+
+        document.getElementById('addCourseBtn').addEventListener('click', function() {
+            const newCourseNameInput = document.getElementById('newCourseName');
+            const newCourse = newCourseNameInput.value.trim();
+            if (newCourse && !appData.savedCourses.includes(newCourse)) {
+                appData.savedCourses.push(newCourse);
+                renderCourseSelect();
+                newCourseNameInput.value = ''; // Clear input
+                showMessageBox(`Curso "${newCourse}" añadido.`);
+                saveAppData();
+            } else if (newCourse) {
+                showMessageBox(`El curso "${newCourse}" ya existe.`);
+            } else {
+                showMessageBox('Por favor, ingresa un nombre para el nuevo curso.');
+            }
+        });
+
+        document.getElementById('courseName').addEventListener('change', function() {
+            appData.basicInfo.courseName = this.value;
+            saveAppData();
+        });
+
+
+        // --- Student Management Module Logic ---
+
+        /**
+         * Renders the list of existing groups.
+         */
+        function renderExistingGroups() {
+            const existingGroupsDisplay = document.getElementById('existingGroupsDisplay');
+            existingGroupsDisplay.innerHTML = ''; // Clear existing buttons
+
+            const groupNames = Object.keys(appData.groups);
+            if (groupNames.length === 0) {
+                existingGroupsDisplay.innerHTML = '<p id="noExistingGroupsMessage" class="text-gray-500"><i class="fas fa-exclamation-circle mr-2"></i>No hay grupos creados aún.</p>';
+            } else {
+                groupNames.forEach(groupName => {
+                    const button = document.createElement('button');
+                    button.classList.add('group-button');
+                    button.innerHTML = `<i class="fas fa-folder mr-2"></i>${groupName} <i class="fas fa-trash-alt delete-icon ml-2" data-group-name="${groupName}"></i>`;
+                    button.onclick = () => selectGroupForManagement(groupName);
+                    existingGroupsDisplay.appendChild(button);
+                });
+            }
+            updateActiveGroupButton();
+            renderEvaluationGroupSelect(); // Update evaluation and report group selects
+            renderReportGroupSelect();
+        }
+
+        /**
+         * Updates the visual state of group buttons (active/inactive).
+         */
+        function updateActiveGroupButton() {
+            document.querySelectorAll('.group-button').forEach(btn => {
+                if (btn.textContent.trim().startsWith(appData.currentManagingGroup)) { // Simplified check
+                    btn.classList.add('active-group');
+                } else {
+                    btn.classList.remove('active-group');
+                }
+            });
+        }
+
+        /**
+         * Selects a group for management and displays its students.
+         * @param {string} groupName - The name of the group to manage.
+         */
+        function selectGroupForManagement(groupName) {
+            appData.currentManagingGroup = groupName;
+            saveAppData();
+            document.getElementById('selectedGroupManagementArea').classList.remove('hidden');
+            document.getElementById('activeManagingGroupName').textContent = groupName;
+            document.getElementById('addStudentsToActiveGroupName').textContent = groupName;
+            renderStudentTable(groupName);
+            updateActiveGroupButton();
+        }
+
+        /**
+         * Renders the student table for the selected group.
+         * @param {string} groupName - The name of the group whose students to display.
+         */
+        function renderStudentTable(groupName) {
+            const studentTableBody = document.querySelector('#studentTable tbody');
+            studentTableBody.innerHTML = ''; // Clear existing rows
+
+            if (appData.groups[groupName] && appData.groups[groupName].length > 0) {
+                appData.groups[groupName].forEach(student => {
+                    const row = studentTableBody.insertRow();
+                    row.innerHTML = `
+                        <td class="flex items-center"><i class="fas fa-user-circle mr-2 text-gray-500"></i>${student.name}</td>
+                        <td>
+                            <button onclick="deleteStudent('${groupName}', '${student.dni}')" class="text-red-600 hover:text-red-800 mr-2"><i class="fas fa-trash-alt"></i> Eliminar</button>
+                        </td>
+                    `;
+                });
+            } else {
+                const row = studentTableBody.insertRow();
+                row.innerHTML = `<td colspan="2" class="text-center text-gray-500"><i class="fas fa-info-circle mr-2"></i>No hay estudiantes en este grupo.</td>`;
+            }
+        }
+
+        /**
+         * Deletes a student from a group.
+         * @param {string} groupName - The name of the group.
+         * @param {string} studentDNI - The DNI of the student to delete.
+         */
+        async function deleteStudent(groupName, studentDNI) {
+            const confirmed = await showConfirmBox(`¿Estás seguro de que quieres eliminar a este estudiante del grupo "${groupName}"?`);
+            if (confirmed) {
+                appData.groups[groupName] = appData.groups[groupName].filter(s => s.dni !== studentDNI);
+                saveAppData();
+                renderStudentTable(groupName);
+                showMessageBox('Estudiante eliminado.');
+                renderEvaluationStudentSelect(); // Update student dropdowns
+            }
+        }
+
+        document.getElementById('createGroupBtn').addEventListener('click', function() {
+            const newGroupName = document.getElementById('newGroupNameInput').value.trim();
+            const studentData = document.getElementById('newGroupStudentDataTextarea').value.trim();
+
+            if (!newGroupName) {
+                showMessageBox('Por favor, ingresa un nombre para el nuevo grupo.');
+                return;
+            }
+            if (appData.groups[newGroupName]) {
+                showMessageBox(`El grupo "${newGroupName}" ya existe. Por favor, elige otro nombre.`);
+                return;
+            }
+            if (!studentData) {
+                showMessageBox('Por favor, pega los nombres de los estudiantes (uno por línea).');
+                return;
+            }
+
+            const students = studentData.split('\n').map(name => {
+                const trimmedName = name.trim();
+                if (trimmedName) {
+                    return { dni: generateUniqueId(), name: trimmedName };
+                }
+                return null;
+            }).filter(s => s !== null);
+
+            if (students.length === 0) {
+                showMessageBox('No se encontraron estudiantes válidos en el texto proporcionado.');
+                return;
+            }
+
+            appData.groups[newGroupName] = students;
+            saveAppData();
+            showMessageBox(`Grupo "${newGroupName}" creado con ${students.length} estudiantes.`);
+            document.getElementById('newGroupNameInput').value = '';
+            document.getElementById('newGroupStudentDataTextarea').value = '';
+            renderExistingGroups();
+            selectGroupForManagement(newGroupName); // Automatically select the new group
+        });
+
+        document.getElementById('addStudentsToActiveGroupBtn').addEventListener('click', function() {
+            const addStudentsTextarea = document.getElementById('addStudentsToActiveGroupTextarea');
+            const newStudentData = addStudentsTextarea.value.trim();
+
+            if (!appData.currentManagingGroup) {
+                showMessageBox('Por favor, selecciona un grupo para añadir estudiantes.');
+                return;
+            }
+            if (!newStudentData) {
+                showMessageBox('Por favor, pega los nombres de los estudiantes a añadir (uno por línea).');
+                return;
+            }
+
+            const newStudents = newStudentData.split('\n').map(name => {
+                const trimmedName = name.trim();
+                if (trimmedName) {
+                    return { dni: generateUniqueId(), name: trimmedName };
+                }
+                return null;
+            }).filter(s => s !== null);
+
+            if (newStudents.length === 0) {
+                showMessageBox('No se encontraron estudiantes válidos en el texto proporcionado.');
+                return;
+            }
+
+            appData.groups[appData.currentManagingGroup] = appData.groups[appData.currentManagingGroup].concat(newStudents);
+            saveAppData();
+            showMessageBox(`${newStudents.length} estudiante(s) añadido(s) al grupo "${appData.currentManagingGroup}".`);
+            addStudentsTextarea.value = '';
+            renderStudentTable(appData.currentManagingGroup);
+            renderEvaluationStudentSelect(); // Update student dropdowns
+        });
+
+        // Event listener for deleting groups via the trash icon
+        document.getElementById('existingGroupsDisplay').addEventListener('click', async function(event) {
+            if (event.target.classList.contains('delete-icon')) {
+                event.stopPropagation(); // Prevent button click from triggering selectGroupForManagement
+                const groupNameToDelete = event.target.dataset.groupName;
+                const confirmed = await showConfirmBox(`¿Estás seguro de que quieres eliminar el grupo "${groupNameToDelete}"? Esto eliminará todos los estudiantes y evaluaciones asociadas.`);
+                if (confirmed) {
+                    delete appData.groups[groupNameToDelete];
+                    // Also delete evaluations associated with students in this group
+                    for (const studentDNI in appData.evaluations) {
+                        // Check if the student belongs to the deleted group
+                        const studentInGroup = Object.values(appData.groups).flat().find(s => s.dni === studentDNI);
+                        if (!studentInGroup) { // If student is no longer in any group, remove their evaluations
+                            delete appData.evaluations[studentDNI];
+                        }
+                    }
+
+                    if (appData.currentManagingGroup === groupNameToDelete) {
+                        appData.currentManagingGroup = null;
+                        document.getElementById('selectedGroupManagementArea').classList.add('hidden');
+                    }
+                    saveAppData();
+                    renderExistingGroups();
+                    showMessageBox(`Grupo "${groupNameToDelete}" y sus evaluaciones asociadas eliminados.`);
+                }
+            }
+        });
+
+        // --- Rubric Module Logic ---
+
+        /**
+         * Renders the list of saved rubrics.
+         */
+        function renderSavedRubrics() {
+            const savedRubricsList = document.getElementById('savedRubricsList');
+            savedRubricsList.innerHTML = ''; // Clear existing list items
+
+            if (appData.rubrics.length === 0) {
+                savedRubricsList.innerHTML = '<p id="noSavedRubricsMessage" class="text-gray-500"><i class="fas fa-info-circle mr-2"></i>No hay rúbricas guardadas aún.</p>';
+                return;
+            }
+
+            appData.rubrics.forEach(rubric => {
+                const listItem = document.createElement('li');
+                listItem.classList.add('flex', 'items-center', 'justify-between', 'py-2', 'border-b', 'border-gray-200', 'last:border-b-0');
+                listItem.innerHTML = `
+                    <span class="text-gray-800 font-medium flex items-center">
+                        <i class="fas fa-file-alt mr-2 text-blue-500"></i>${rubric.title}
+                    </span>
+                    <div>
+                        <button onclick="editRubric('${rubric.id}')" class="text-blue-600 hover:text-blue-800 mr-3"><i class="fas fa-edit"></i> Editar</button>
+                        <button onclick="deleteRubric('${rubric.id}')" class="text-red-600 hover:text-red-800"><i class="fas fa-trash-alt"></i> Eliminar</button>
+                    </div>
+                `;
+                savedRubricsList.appendChild(listItem);
+            });
+            renderEvaluationRubricSelect(); // Update rubric dropdowns
+            renderReportRubricSelect();
+        }
+
+        /**
+         * Edits an existing rubric by loading its data into the form.
+         * @param {string} rubricId - The ID of the rubric to edit.
+         */
+        function editRubric(rubricId) {
+            const rubricToEdit = appData.rubrics.find(r => r.id === rubricId);
+            if (rubricToEdit) {
+                document.getElementById('rubricTitle').value = rubricToEdit.title;
+                document.getElementById('rubricDescription').value = rubricToEdit.description || ''; // Load description
+                renderRubricTable(rubricToEdit.criteria);
+                document.getElementById('generatedRubricDisplay').classList.remove('hidden');
+                document.getElementById('saveRubricBtn').dataset.editingId = rubricId; // Store ID for update
+                showMessageBox(`Cargando rúbrica "${rubricToEdit.title}" para edición.`);
+            } else {
+                showMessageBox('Rúbrica no encontrada.');
+            }
+        }
+
+        /**
+         * Deletes a rubric.
+         * @param {string} rubricId - The ID of the rubric to delete.
+         */
+        async function deleteRubric(rubricId) {
+            const confirmed = await showConfirmBox('¿Estás seguro de que quieres eliminar esta rúbrica? Esto no eliminará las evaluaciones ya realizadas con ella.');
+            if (confirmed) {
+                appData.rubrics = appData.rubrics.filter(r => r.id !== rubricId);
+                saveAppData();
+                renderSavedRubrics();
+                showMessageBox('Rúbrica eliminada.');
+            }
+        }
+
+        /**
+         * Renders the rubric table with given criteria.
+         * @param {Array} criteria - An array of criterion objects.
+         */
+        function renderRubricTable(criteria) {
+            const rubricTableBody = document.querySelector('#rubricTable tbody');
+            rubricTableBody.innerHTML = ''; // Clear existing rows
+
+            if (criteria.length === 0) {
+                const row = rubricTableBody.insertRow();
+                row.innerHTML = `<td colspan="6" class="text-center text-gray-500"><i class="fas fa-info-circle mr-2"></i>No hay criterios para esta rúbrica.</td>`;
+                return;
+            }
+
+            criteria.forEach(criterion => {
+                const row = rubricTableBody.insertRow();
+                row.insertCell().textContent = criterion.name;
+                for (let i = 1; i <= 5; i++) {
+                    row.insertCell().textContent = criterion.levels[i];
+                }
+            });
+        }
+
+        document.getElementById('generateRubricBtn').addEventListener('click', async function() {
+            const apiKey = document.getElementById('geminiApiKey').value.trim();
+            const rubricTitle = document.getElementById('rubricTitle').value.trim();
+            const rubricDescription = document.getElementById('rubricDescription').value.trim();
+            const loadingSpinner = document.getElementById('rubricLoadingSpinner');
+
+            if (!apiKey) {
+                showMessageBox('Por favor, ingresa tu clave API de Gemini.');
+                return;
+            }
+            if (!rubricTitle) {
+                showMessageBox('Por favor, ingresa un título para la rúbrica.');
+                return;
+            }
+            if (!rubricDescription) {
+                showMessageBox('Por favor, ingresa una descripción para la IA sobre qué debe tratar la rúbrica.');
+                return;
+            }
+
+            loadingSpinner.style.display = 'inline-block';
+            this.disabled = true; // Disable button during generation
+
+            try {
+                const prompt = `Genera una rúbrica de evaluación detallada en formato JSON. La rúbrica debe tener un título: "${rubricTitle}". La descripción para la IA es: "${rubricDescription}".
+                La rúbrica debe contener los siguientes niveles de logro con sus respectivos puntajes:
+                1: Previo al Inicio
+                2: Inicio
+                3: En Proceso
+                4: Logrado
+                5: Destacado
+
+                La estructura JSON debe ser un array de objetos, donde cada objeto representa un criterio. Cada criterio debe tener una propiedad "name" (string) y una propiedad "levels" (objeto). La propiedad "levels" debe contener las descripciones para cada nivel de puntaje (1 a 5).
+
+                Ejemplo de formato:
+                [
+                    {
+                        "name": "Criterio 1",
+                        "levels": {
+                            "1": "Descripción para Previo al Inicio",
+                            "2": "Descripción para Inicio",
+                            "3": "Descripción para En Proceso",
+                            "4": "Descripción para Logrado",
+                            "5": "Descripción para Destacado"
+                        }
+                    },
+                    {
+                        "name": "Criterio 2",
+                        "levels": {
+                            "1": "Descripción para Previo al Inicio",
+                            "2": "Descripción para Inicio",
+                            "3": "Descripción para En Proceso",
+                            "4": "Descripción para Logrado",
+                            "5": "Descripción para Destacado"
+                        }
+                    }
+                ]
+                Asegúrate de que las descripciones sean concisas y claras, y que haya al menos 3 criterios.`;
+
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = {
+                    contents: chatHistory,
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "ARRAY",
+                            items: {
+                                type: "OBJECT",
+                                properties: {
+                                    "name": { "type": "STRING" },
+                                    "levels": {
+                                        "type": "OBJECT",
+                                        "properties": {
+                                            "1": { "type": "STRING" },
+                                            "2": { "type": "STRING" },
+                                            "3": { "type": "STRING" },
+                                            "4": { "type": "STRING" },
+                                            "5": { "type": "STRING" }
+                                        },
+                                        "required": ["1", "2", "3", "4", "5"]
+                                    }
+                                },
+                                "required": ["name", "levels"]
+                            }
+                        }
+                    }
+                };
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                
+                let response;
+                let result;
+                let retries = 0;
+                const maxRetries = 5;
+                const baseDelay = 1000; // 1 second
+
+                while (retries < maxRetries) {
+                    try {
+                        response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (response.status === 429) { // Too Many Requests
+                            const delay = baseDelay * Math.pow(2, retries) + Math.random() * 1000;
+                            console.warn(`Rate limit exceeded. Retrying in ${delay / 1000} seconds...`);
+                            await new Promise(res => setTimeout(res, delay));
+                            retries++;
+                            continue;
+                        }
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+
+                        result = await response.json();
+                        break; // Exit loop if successful
+                    } catch (error) {
+                        console.error('Error fetching from Gemini API:', error);
+                        if (retries === maxRetries - 1) throw error; // Re-throw on last retry
+                        const delay = baseDelay * Math.pow(2, retries) + Math.random() * 1000;
+                        console.warn(`Fetch failed. Retrying in ${delay / 1000} seconds...`);
+                        await new Promise(res => setTimeout(res, delay));
+                        retries++;
+                    }
+                }
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const jsonString = result.candidates[0].content.parts[0].text;
+                    const generatedCriteria = JSON.parse(jsonString);
+
+                    if (generatedCriteria && Array.isArray(generatedCriteria) && generatedCriteria.length > 0) {
+                        appData.currentRubric = {
+                            id: generateUniqueId(),
+                            title: rubricTitle,
+                            description: rubricDescription,
+                            criteria: generatedCriteria
+                        };
+                        renderRubricTable(appData.currentRubric.criteria);
+                        document.getElementById('generatedRubricDisplay').classList.remove('hidden');
+                        document.getElementById('saveRubricBtn').dataset.editingId = ''; // Clear editing ID
+                        showMessageBox('Rúbrica generada con éxito. Revisa y guarda.');
+                    } else {
+                        showMessageBox('La IA generó un formato de rúbrica inesperado. Inténtalo de nuevo.');
+                        console.error('Unexpected rubric format:', generatedCriteria);
+                    }
+                } else {
+                    showMessageBox('No se pudo generar la rúbrica. Inténtalo de nuevo.');
+                    console.error('Gemini API response missing content:', result);
+                }
+            } catch (error) {
+                showMessageBox('Error al generar la rúbrica: ' + error.message);
+                console.error('Error in generateRubricBtn click handler:', error);
+            } finally {
+                loadingSpinner.style.display = 'none';
+                this.disabled = false; // Re-enable button
+            }
+        });
+
+        document.getElementById('saveRubricBtn').addEventListener('click', function() {
+            if (!appData.currentRubric) {
+                showMessageBox('No hay una rúbrica generada para guardar.');
+                return;
+            }
+
+            const editingId = this.dataset.editingId;
+            if (editingId) {
+                // Update existing rubric
+                const index = appData.rubrics.findIndex(r => r.id === editingId);
+                if (index !== -1) {
+                    appData.rubrics[index] = { ...appData.currentRubric, id: editingId }; // Preserve original ID
+                    showMessageBox('Rúbrica actualizada con éxito.');
+                } else {
+                    showMessageBox('Error: Rúbrica a actualizar no encontrada.');
+                }
+            } else {
+                // Add new rubric
+                appData.rubrics.push(appData.currentRubric);
+                showMessageBox('Rúbrica guardada con éxito.');
+            }
+
+            saveAppData();
+            renderSavedRubrics();
+            document.getElementById('generatedRubricDisplay').classList.add('hidden'); // Hide generated display
+            document.getElementById('rubricTitle').value = ''; // Clear form
+            document.getElementById('rubricDescription').value = '';
+            appData.currentRubric = null; // Clear current rubric
+        });
+
+
+        // --- Evaluation Module Logic ---
+
+        /**
+         * Renders the group selection dropdown in the Evaluation module.
+         */
+        function renderEvaluationGroupSelect() {
+            const selectEvaluationGroup = document.getElementById('selectEvaluationGroup');
+            selectEvaluationGroup.innerHTML = '<option value="">-- Seleccionar Grupo --</option>';
+
+            const groupNames = Object.keys(appData.groups);
+            groupNames.forEach(groupName => {
+                const option = document.createElement('option');
+                option.value = groupName;
+                option.textContent = groupName;
+                selectEvaluationGroup.appendChild(option);
+            });
+
+            // Restore selected group if available
+            if (appData.currentGroup) {
+                selectEvaluationGroup.value = appData.currentGroup;
+            }
+            // Trigger student select update if a group is already selected
+            if (selectEvaluationGroup.value) {
+                renderEvaluationStudentSelect();
+            } else {
+                // Clear student select if no group is selected
+                document.getElementById('selectStudentForEvaluation').innerHTML = '<option value="">-- Seleccionar Estudiante --</option>';
+            }
+        }
+
+        /**
+         * Renders the student selection dropdown in the Evaluation module based on the selected group.
+         */
+        function renderEvaluationStudentSelect() {
+            const selectEvaluationGroup = document.getElementById('selectEvaluationGroup');
+            const selectStudentForEvaluation = document.getElementById('selectStudentForEvaluation');
+            selectStudentForEvaluation.innerHTML = '<option value="">-- Seleccionar Estudiante --</option>';
+
+            const selectedGroupName = selectEvaluationGroup.value;
+            if (selectedGroupName && appData.groups[selectedGroupName]) {
+                appData.groups[selectedGroupName].forEach(student => {
+                    const option = document.createElement('option');
+                    option.value = student.dni;
+                    option.textContent = student.name;
+                    selectStudentForEvaluation.appendChild(option);
+                });
+
+                // Automatically select the first student if a group is selected and has students
+                if (appData.groups[selectedGroupName].length > 0) {
+                    const firstStudentDNI = appData.groups[selectedGroupName][0].dni;
+                    selectStudentForEvaluation.value = firstStudentDNI;
+                    appData.currentStudent = appData.groups[selectedGroupName][0];
+                } else {
+                    appData.currentStudent = null;
+                }
+            } else {
+                appData.currentStudent = null;
+            }
+            // Trigger rubric rendering if both group and student are selected
+            if (selectStudentForEvaluation.value && document.getElementById('selectRubricForEvaluation').value) {
+                updateEvaluationArea();
+            } else if (selectStudentForEvaluation.value && !document.getElementById('selectRubricForEvaluation').value && appData.rubrics.length > 0) {
+                // If student is selected but no rubric, try to select the first rubric
+                document.getElementById('selectRubricForEvaluation').value = appData.rubrics[0].id;
+                appData.currentRubric = appData.rubrics[0];
+                updateEvaluationArea();
+            } else {
+                document.getElementById('evaluationArea').classList.add('hidden');
+            }
+        }
+
+        /**
+         * Renders the rubric selection dropdown in the Evaluation module.
+         */
+        function renderEvaluationRubricSelect() {
+            const selectRubricForEvaluation = document.getElementById('selectRubricForEvaluation');
+            selectRubricForEvaluation.innerHTML = '<option value="">-- Seleccionar Rúbrica --</option>';
+
+            appData.rubrics.forEach(rubric => {
+                const option = document.createElement('option');
+                option.value = rubric.id;
+                option.textContent = rubric.title;
+                selectRubricForEvaluation.appendChild(option);
+            });
+
+            // Restore selected rubric if available
+            if (appData.currentRubric) {
+                selectRubricForEvaluation.value = appData.currentRubric.id;
+            }
+            // Trigger evaluation area update if a rubric is selected and a student is selected
+            if (selectRubricForEvaluation.value && document.getElementById('selectStudentForEvaluation').value) {
+                updateEvaluationArea();
+            } else {
+                document.getElementById('evaluationArea').classList.add('hidden');
+            }
+        }
+
+        /**
+         * Updates the evaluation area with the selected student and rubric.
+         */
+        function updateEvaluationArea() {
+            const selectedStudentDNI = document.getElementById('selectStudentForEvaluation').value;
+            const selectedRubricId = document.getElementById('selectRubricForEvaluation').value;
+
+            const student = Object.values(appData.groups).flat().find(s => s.dni === selectedStudentDNI);
+            const rubric = appData.rubrics.find(r => r.id === selectedRubricId);
+
+            if (student && rubric) {
+                appData.currentStudent = student;
+                appData.currentRubric = rubric;
+                saveAppData();
+
+                document.getElementById('evaluationArea').classList.remove('hidden');
+                document.getElementById('currentEvaluatingStudentName').textContent = student.name;
+                document.getElementById('currentEvaluatingStudentDNI').textContent = student.dni;
+
+                const evaluationRubricTableBody = document.querySelector('#evaluationRubricTable tbody');
+                evaluationRubricTableBody.innerHTML = ''; // Clear existing rows
+
+                rubric.criteria.forEach(criterion => {
+                    const row = evaluationRubricTableBody.insertRow();
+                    row.insertCell().textContent = criterion.name; // Criterion Name
+
+                    for (let i = 1; i <= 5; i++) {
+                        const cell = row.insertCell();
+                        // Display the descriptor instead of just the score number
+                        cell.textContent = criterion.levels[i];
+                        cell.classList.add('evaluation-cell');
+                        cell.dataset.criterionName = criterion.name;
+                        cell.dataset.score = i;
+                        cell.onclick = () => selectRubricScore(criterion.name, i);
+                    }
+                });
+                loadEvaluationScores(); // Load previously saved scores for this student/rubric
+                calculateAndDisplayScores();
+            } else {
+                document.getElementById('evaluationArea').classList.add('hidden');
+            }
+        }
+
+        /**
+         * Loads previously saved evaluation scores for the current student and rubric.
+         */
+        function loadEvaluationScores() {
+            const studentDNI = appData.currentStudent.dni;
+            const rubricId = appData.currentRubric.id;
+
+            // Clear all selected states first
+            document.querySelectorAll('.evaluation-cell').forEach(cell => {
+                cell.classList.remove('selected');
+            });
+
+            if (appData.evaluations[studentDNI] && appData.evaluations[studentDNI][rubricId]) {
+                const savedEvaluation = appData.evaluations[studentDNI][rubricId];
+                document.querySelectorAll('.evaluation-cell').forEach(cell => {
+                    const criterionName = cell.dataset.criterionName;
+                    const score = parseInt(cell.dataset.score);
+                    if (savedEvaluation[criterionName] === score) {
+                        cell.classList.add('selected');
+                    }
+                });
+            }
+        }
+
+        /**
+         * Selects a score for a given criterion in the evaluation rubric.
+         * @param {string} criterionName - The name of the criterion.
+         * @param {number} score - The selected score (1-5).
+         */
+        function selectRubricScore(criterionName, score) {
+            const studentDNI = appData.currentStudent.dni;
+            const rubricId = appData.currentRubric.id;
+
+            if (!appData.evaluations[studentDNI]) {
+                appData.evaluations[studentDNI] = {};
+            }
+            if (!appData.evaluations[studentDNI][rubricId]) {
+                appData.evaluations[studentDNI][rubricId] = {};
+            }
+
+            // Deselect previous score for this criterion
+            document.querySelectorAll(`.evaluation-cell[data-criterion-name="${criterionName}"]`).forEach(cell => {
+                cell.classList.remove('selected');
+            });
+
+            // Select the new score
+            const selectedCell = document.querySelector(`.evaluation-cell[data-criterion-name="${criterionName}"][data-score="${score}"]`);
+            if (selectedCell) {
+                selectedCell.classList.add('selected');
+            }
+
+            appData.evaluations[studentDNI][rubricId][criterionName] = score;
+            calculateAndDisplayScores();
+            saveAppData(); // Save immediately on score change
+        }
+
+        /**
+         * Calculates and displays total score, average, and descriptive grade.
+         */
+        function calculateAndDisplayScores() {
+            const studentDNI = appData.currentStudent.dni;
+            const rubricId = appData.currentRubric.id;
+
+            let totalScore = 0;
+            let evaluatedCriteriaCount = 0;
+
+            if (appData.evaluations[studentDNI] && appData.evaluations[studentDNI][rubricId]) {
+                const currentEvaluation = appData.evaluations[studentDNI][rubricId];
+                appData.currentRubric.criteria.forEach(criterion => {
+                    if (currentEvaluation[criterion.name] !== undefined) {
+                        totalScore += currentEvaluation[criterion.name];
+                        evaluatedCriteriaCount++;
+                    }
+                });
+            }
+
+            const averageScore = evaluatedCriteriaCount > 0 ? (totalScore / evaluatedCriteriaCount).toFixed(1) : 0.0;
+            const descriptiveGrade = getDescriptiveGrade(parseFloat(averageScore));
+
+            document.getElementById('totalScore').textContent = totalScore;
+            document.getElementById('averageScore').textContent = averageScore;
+            document.getElementById('descriptiveGrade').textContent = descriptiveGrade;
+
+            // Store calculated scores in appData for reporting
+            if (appData.evaluations[studentDNI] && appData.evaluations[studentDNI][rubricId]) {
+                appData.evaluations[studentDNI][rubricId].totalScore = totalScore;
+                appData.evaluations[studentDNI][rubricId].averageScore = parseFloat(averageScore);
+                appData.evaluations[studentDNI][rubricId].descriptiveGrade = descriptiveGrade;
+            }
+        }
+
+        /**
+         * Determines the descriptive grade based on the average score.
+         * @param {number} average - The average score.
+         * @returns {string} The descriptive grade.
+         */
+        function getDescriptiveGrade(average) {
+            if (average >= 4.5) return 'Destacado';
+            if (average >= 3.5) return 'Logrado';
+            if (average >= 2.5) return 'En Proceso';
+            if (average >= 1.5) return 'Inicio';
+            return 'Previo al Inicio';
+        }
+
+        document.getElementById('selectEvaluationGroup').addEventListener('change', function() {
+            appData.currentGroup = this.value;
+            renderEvaluationStudentSelect(); // This will now also auto-select the first student
+        });
+
+        document.getElementById('selectStudentForEvaluation').addEventListener('change', function() {
+            const selectedStudentDNI = this.value;
+            appData.currentStudent = Object.values(appData.groups).flat().find(s => s.dni === selectedStudentDNI);
+            updateEvaluationArea();
+        });
+
+        document.getElementById('selectRubricForEvaluation').addEventListener('change', function() {
+            const selectedRubricId = this.value;
+            appData.currentRubric = appData.rubrics.find(r => r.id === selectedRubricId);
+            updateEvaluationArea();
+        });
+
+        document.getElementById('nextStudentBtn').addEventListener('click', function() {
+            const currentGroupStudents = appData.groups[appData.currentGroup];
+            if (!currentGroupStudents || currentGroupStudents.length === 0) return;
+
+            let currentIndex = -1;
+            if (appData.currentStudent) {
+                currentIndex = currentGroupStudents.findIndex(s => s.dni === appData.currentStudent.dni);
+            }
+
+            const nextIndex = (currentIndex + 1) % currentGroupStudents.length;
+            const nextStudent = currentGroupStudents[nextIndex];
+
+            document.getElementById('selectStudentForEvaluation').value = nextStudent.dni;
+            appData.currentStudent = nextStudent;
+            updateEvaluationArea();
+        });
+
+        document.getElementById('prevStudentBtn').addEventListener('click', function() {
+            const currentGroupStudents = appData.groups[appData.currentGroup];
+            if (!currentGroupStudents || currentGroupStudents.length === 0) return;
+
+            let currentIndex = -1;
+            if (appData.currentStudent) {
+                currentIndex = currentGroupStudents.findIndex(s => s.dni === appData.currentStudent.dni);
+            }
+
+            const prevIndex = (currentIndex - 1 + currentGroupStudents.length) % currentGroupStudents.length;
+            const prevStudent = currentGroupStudents[prevIndex];
+
+            document.getElementById('selectStudentForEvaluation').value = prevStudent.dni;
+            appData.currentStudent = prevStudent;
+            updateEvaluationArea();
+        });
+
+
+        // --- Report Module Logic ---
+
+        /**
+         * Renders the group selection dropdown in the Report module.
+         */
+        function renderReportGroupSelect() {
+            const selectReportGroup = document.getElementById('selectReportGroup');
+            selectReportGroup.innerHTML = '<option value="">-- Seleccionar Grupo --</option>';
+
+            const groupNames = Object.keys(appData.groups);
+            groupNames.forEach(groupName => {
+                const option = document.createElement('option');
+                option.value = groupName;
+                option.textContent = groupName;
+                selectReportGroup.appendChild(option);
+            });
+
+            // Trigger student select update if a group is already selected
+            if (selectReportGroup.value) {
+                renderReportStudentSelect();
+            } else {
+                document.getElementById('selectReportStudentForIndividualPdf').innerHTML = '<option value="">-- Seleccionar Estudiante --</option>';
+            }
+        }
+
+        /**
+         * Renders the student selection dropdown in the Report module based on the selected group.
+         */
+        function renderReportStudentSelect() {
+            const selectReportGroup = document.getElementById('selectReportGroup');
+            const selectReportStudent = document.getElementById('selectReportStudentForIndividualPdf');
+            selectReportStudent.innerHTML = '<option value="">-- Seleccionar Estudiante --</option>';
+
+            const selectedGroupName = selectReportGroup.value;
+            if (selectedGroupName && appData.groups[selectedGroupName]) {
+                appData.groups[selectedGroupName].forEach(student => {
+                    const option = document.createElement('option');
+                    option.value = student.dni;
+                    option.textContent = student.name;
+                    selectReportStudent.appendChild(option);
+                });
+            }
+        }
+
+        /**
+         * Renders the rubric selection dropdown in the Report module.
+         */
+        function renderReportRubricSelect() {
+            const selectReportRubric = document.getElementById('selectReportRubric');
+            selectReportRubric.innerHTML = '<option value="">-- Seleccionar Rúbrica --</option>';
+
+            appData.rubrics.forEach(rubric => {
+                const option = document.createElement('option');
+                option.value = rubric.id;
+                option.textContent = rubric.title;
+                selectReportRubric.appendChild(option);
+            });
+        }
+
+        document.getElementById('selectReportGroup').addEventListener('change', renderReportStudentSelect);
+
+        document.getElementById('generateGroupPdfReportsBtn').addEventListener('click', async function() {
+            const selectedGroupName = document.getElementById('selectReportGroup').value;
+            if (!selectedGroupName) {
+                showMessageBox('Por favor, selecciona un grupo para generar reportes.');
+                return;
+            }
+
+            const studentsInGroup = appData.groups[selectedGroupName];
+            if (!studentsInGroup || studentsInGroup.length === 0) {
+                showMessageBox('No hay estudiantes en el grupo seleccionado para generar reportes.');
+                return;
+            }
+
+            if (appData.rubrics.length === 0) {
+                showMessageBox('No hay rúbricas guardadas para generar reportes.');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            let y = 10;
+
+            doc.setFontSize(18);
+            doc.setTextColor(76, 81, 191); // Deeper Indigo
+            doc.text(`Reporte de Evaluaciones del Grupo: ${selectedGroupName}`, 10, y);
+            y += 10;
+            doc.setFontSize(10);
+            doc.setTextColor(74, 85, 104); // Darker gray
+            doc.text(`Institución: ${appData.basicInfo.institutionName || 'N/A'}`, 10, y); y += 6;
+            doc.text(`Curso: ${appData.basicInfo.courseName || 'N/A'}`, 10, y); y += 6;
+            doc.text(`Docente: ${appData.basicInfo.teacherName || 'N/A'}`, 10, y); y += 6;
+            doc.text(`Fecha: ${appData.basicInfo.evaluationDate || 'N/A'}`, 10, y); y += 15;
+
+            for (const student of studentsInGroup) {
+                doc.setFontSize(14);
+                doc.setTextColor(45, 55, 72); // Even darker gray
+                doc.text(`Estudiante: ${student.name}`, 10, y);
+                y += 8;
+
+                let hasEvaluations = false;
+                for (const rubric of appData.rubrics) {
+                    if (appData.evaluations[student.dni] && appData.evaluations[student.dni][rubric.id]) {
+                        hasEvaluations = true;
+                        const evaluation = appData.evaluations[student.dni][rubric.id];
+
+                        doc.setFontSize(12);
+                        doc.setTextColor(66, 153, 225); // Blue
+                        doc.text(`Rúbrica: ${rubric.title}`, 15, y);
+                        y += 8;
+
+                        const head = [['Criterio', 'Puntaje', 'Nivel de Logro']];
+                        const body = rubric.criteria.map(criterion => {
+                            const score = evaluation[criterion.name] || 'N/A';
+                            const level = score !== 'N/A' ? getDescriptiveGrade(score) : 'No Evaluado';
+                            return [criterion.name, score, level];
+                        });
+
+                        doc.autoTable({
+                            startY: y,
+                            head: head,
+                            body: body,
+                            theme: 'grid',
+                            styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+                            headStyles: { fillColor: [235, 248, 255], textColor: [44, 82, 130], fontStyle: 'bold' },
+                            alternateRowStyles: { fillColor: [247, 250, 252] },
+                            columnStyles: {
+                                0: { cellWidth: 80 }, // Criterion
+                                1: { cellWidth: 20, halign: 'center' }, // Score
+                                2: { cellWidth: 50, halign: 'center' } // Level
+                            },
+                            didDrawPage: function (data) {
+                                y = data.cursor.y + 10; // Update y position after table
+                            }
+                        });
+
+                        y = doc.autoTable.previous.finalY + 5; // Get final Y position after table
+
+                        doc.setFontSize(10);
+                        doc.setTextColor(45, 55, 72);
+                        doc.text(`Puntaje Total: ${evaluation.totalScore || 'N/A'}`, 15, y); y += 5;
+                        doc.text(`Promedio: ${evaluation.averageScore || 'N/A'}`, 15, y); y += 5;
+                        doc.text(`Nivel de Logro Global: ${evaluation.descriptiveGrade || 'N/A'}`, 15, y); y += 10;
+                    }
+                }
+
+                if (!hasEvaluations) {
+                    doc.setFontSize(10);
+                    doc.setTextColor(107, 114, 128);
+                    doc.text('Este estudiante no tiene evaluaciones registradas.', 15, y);
+                    y += 10;
+                }
+
+                if (student !== studentsInGroup[studentsInGroup.length - 1]) {
+                    doc.addPage();
+                    y = 10;
+                }
+            }
+
+            doc.save(`Reporte_Grupo_${selectedGroupName}.pdf`);
+            showMessageBox(`Reporte PDF para el grupo "${selectedGroupName}" generado.`);
+        });
+
+        document.getElementById('generateConsolidatedPdfReportBtn').addEventListener('click', async function() {
+            const selectedStudentDNI = document.getElementById('selectReportStudentForIndividualPdf').value;
+            if (!selectedStudentDNI) {
+                showMessageBox('Por favor, selecciona un estudiante para generar el reporte consolidado.');
+                return;
+            }
+
+            const student = Object.values(appData.groups).flat().find(s => s.dni === selectedStudentDNI);
+            if (!student) {
+                showMessageBox('Estudiante no encontrado.');
+                return;
+            }
+
+            const studentEvaluations = appData.evaluations[student.dni];
+            if (!studentEvaluations || Object.keys(studentEvaluations).length === 0) {
+                showMessageBox('Este estudiante no tiene evaluaciones registradas para generar un reporte consolidado.');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            let y = 10;
+
+            doc.setFontSize(18);
+            doc.setTextColor(76, 81, 191); // Deeper Indigo
+            doc.text(`Reporte Consolidado de Evaluaciones`, 10, y);
+            y += 10;
+            doc.setFontSize(14);
+            doc.setTextColor(45, 55, 72);
+            doc.text(`Estudiante: ${student.name}`, 10, y);
+            y += 8;
+            doc.setFontSize(10);
+            doc.setTextColor(74, 85, 104);
+            doc.text(`DNI: ${student.dni}`, 10, y); y += 6;
+            doc.text(`Institución: ${appData.basicInfo.institutionName || 'N/A'}`, 10, y); y += 6;
+            doc.text(`Curso: ${appData.basicInfo.courseName || 'N/A'}`, 10, y); y += 6;
+            doc.text(`Docente: ${appData.basicInfo.teacherName || 'N/A'}`, 10, y); y += 6;
+            doc.text(`Fecha: ${appData.basicInfo.evaluationDate || 'N/A'}`, 10, y); y += 15;
+
+            for (const rubricId in studentEvaluations) {
+                const rubric = appData.rubrics.find(r => r.id === rubricId);
+                if (rubric) {
+                    const evaluation = studentEvaluations[rubricId];
+
+                    doc.setFontSize(12);
+                    doc.setTextColor(66, 153, 225);
+                    doc.text(`Rúbrica: ${rubric.title}`, 15, y);
+                    y += 8;
+
+                    const head = [['Criterio', 'Puntaje', 'Nivel de Logro']];
+                    const body = rubric.criteria.map(criterion => {
+                        const score = evaluation[criterion.name] || 'N/A';
+                        const level = score !== 'N/A' ? getDescriptiveGrade(score) : 'No Evaluado';
+                        return [criterion.name, score, level];
+                    });
+
+                    doc.autoTable({
+                        startY: y,
+                        head: head,
+                        body: body,
+                        theme: 'grid',
+                        styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+                        headStyles: { fillColor: [235, 248, 255], textColor: [44, 82, 130], fontStyle: 'bold' },
+                        alternateRowStyles: { fillColor: [247, 250, 252] },
+                        columnStyles: {
+                            0: { cellWidth: 80 },
+                            1: { cellWidth: 20, halign: 'center' },
+                            2: { cellWidth: 50, halign: 'center' }
+                        },
+                        didDrawPage: function (data) {
+                            y = data.cursor.y + 10;
+                        }
+                    });
+
+                    y = doc.autoTable.previous.finalY + 5;
+
+                    doc.setFontSize(10);
+                    doc.setTextColor(45, 55, 72);
+                    doc.text(`Puntaje Total: ${evaluation.totalScore || 'N/A'}`, 15, y); y += 5;
+                    doc.text(`Promedio: ${evaluation.averageScore || 'N/A'}`, 15, y); y += 5;
+                    doc.text(`Nivel de Logro Global: ${evaluation.descriptiveGrade || 'N/A'}`, 15, y); y += 10;
+                }
+            }
+
+            doc.save(`Reporte_Consolidado_${student.name}.pdf`);
+            showMessageBox(`Reporte Consolidado para "${student.name}" generado.`);
+        });
+
+        document.getElementById('generateTeacherSummaryPdfBtn').addEventListener('click', async function() {
+            const selectedRubricId = document.getElementById('selectReportRubric').value;
+            if (!selectedRubricId) {
+                showMessageBox('Por favor, selecciona una rúbrica para generar el resumen docente.');
+                return;
+            }
+
+            const rubric = appData.rubrics.find(r => r.id === selectedRubricId);
+            if (!rubric) {
+                showMessageBox('Rúbrica no encontrada.');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape'); // Landscape for wider table
+            let y = 10;
+
+            doc.setFontSize(18);
+            doc.setTextColor(76, 81, 191);
+            doc.text(`Resumen Docente - Rúbrica: ${rubric.title}`, 10, y);
+            y += 10;
+            doc.setFontSize(10);
+            doc.setTextColor(74, 85, 104);
+            doc.text(`Institución: ${appData.basicInfo.institutionName || 'N/A'}`, 10, y); y += 6;
+            doc.text(`Curso: ${appData.basicInfo.courseName || 'N/A'}`, 10, y); y += 6;
+            doc.text(`Docente: ${appData.basicInfo.teacherName || 'N/A'}`, 10, y); y += 6;
+            doc.text(`Fecha: ${appData.basicInfo.evaluationDate || 'N/A'}`, 10, y); y += 15;
+
+            const head = [['Estudiante', ...rubric.criteria.map(c => c.name), 'Puntaje Total', 'Promedio', 'Nivel de Logro']];
+            const body = [];
+
+            const allStudents = Object.values(appData.groups).flat();
+            allStudents.forEach(student => {
+                const rowData = [student.name];
+                const studentEvaluation = appData.evaluations[student.dni] ? appData.evaluations[student.dni][rubric.id] : null;
+
+                rubric.criteria.forEach(criterion => {
+                    rowData.push(studentEvaluation && studentEvaluation[criterion.name] !== undefined ? studentEvaluation[criterion.name] : 'N/A');
+                });
+
+                rowData.push(studentEvaluation ? studentEvaluation.totalScore || 'N/A' : 'N/A');
+                rowData.push(studentEvaluation ? studentEvaluation.averageScore || 'N/A' : 'N/A');
+                rowData.push(studentEvaluation ? studentEvaluation.descriptiveGrade || 'N/A' : 'N/A');
+                body.push(rowData);
+            });
+
+            doc.autoTable({
+                startY: y,
+                head: head,
+                body: body,
+                theme: 'grid',
+                styles: { fontSize: 7, cellPadding: 1.5, overflow: 'linebreak' },
+                headStyles: { fillColor: [235, 248, 255], textColor: [44, 82, 130], fontStyle: 'bold' },
+                alternateRowStyles: { fillColor: [247, 250, 252] },
+                columnStyles: {
+                    0: { cellWidth: 40 }, // Student Name
+                    ...rubric.criteria.reduce((acc, _, index) => {
+                        acc[index + 1] = { cellWidth: 25, halign: 'center' }; // Criteria scores
+                        return acc;
+                    }, {}),
+                    [rubric.criteria.length + 1]: { cellWidth: 20, halign: 'center' }, // Total Score
+                    [rubric.criteria.length + 2]: { cellWidth: 20, halign: 'center' }, // Average Score
+                    [rubric.criteria.length + 3]: { cellWidth: 25, halign: 'center' } // Descriptive Grade
+                }
+            });
+
+            doc.save(`Resumen_Docente_${rubric.title}.pdf`);
+            showMessageBox(`Resumen Docente para la rúbrica "${rubric.title}" generado.`);
+        });
+
+
+        // --- Initial Load and Event Listeners ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAppData();
+            renderCourseSelect();
+            updateBasicDataDisplay();
+            renderExistingGroups();
+            renderSavedRubrics();
+            renderEvaluationGroupSelect();
+            renderEvaluationRubricSelect();
+            renderReportGroupSelect();
+            renderReportRubricSelect();
+
+            // Hamburger menu toggle
+            document.getElementById('hamburgerMenu').addEventListener('click', function() {
+                const navMenu = document.getElementById('navMenu');
+                navMenu.classList.toggle('active');
+            });
+
+            // Initial section display
+            showSection('basicDataSection');
+
+            // Failsafe: Ensure the message modal is hidden after initial load
+            setTimeout(() => {
+                const modal = document.getElementById('messageModal');
+                if (modal) { // Check if modal exists before trying to hide it
+                    modal.style.display = 'none';
+                    console.log('Failsafe: Message modal explicitly hidden after DOMContentLoaded.');
+                }
+            }, 100); // Small delay to ensure all initial rendering is complete
+        });
+    </script>
+</body>
+</html>
